@@ -12,10 +12,30 @@ const fotoInput = document.getElementById("foto");
 
 let itens = [];
 
+const CACHE_KEY = "achadosRG_cacheAnuncios";
+const RASCUNHOS_KEY = "achadosRG_rascunhosPendentes";
+
 function formatarData(data) {
   if (!data) return "";
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
+}
+
+function salvarCacheAnuncios(lista) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify(lista));
+}
+
+function lerCacheAnuncios() {
+  return JSON.parse(localStorage.getItem(CACHE_KEY)) || [];
+}
+
+function salvarRascunho(item) {
+  const rascunhos = JSON.parse(localStorage.getItem(RASCUNHOS_KEY)) || [];
+  rascunhos.unshift({
+    ...item,
+    salvo_em: new Date().toISOString(),
+  });
+  localStorage.setItem(RASCUNHOS_KEY, JSON.stringify(rascunhos));
 }
 
 function aplicarFiltros(lista) {
@@ -43,67 +63,85 @@ function aplicarFiltros(lista) {
   });
 }
 
-function renderizarItens() {
+function renderizarItens(aviso = "") {
   const itensFiltrados = aplicarFiltros(itens);
 
   if (itensFiltrados.length === 0) {
-    itensContainer.innerHTML = `<p class="vazio">Nenhum anúncio encontrado.</p>`;
+    itensContainer.innerHTML = `
+      ${aviso ? `<p class="vazio">${aviso}</p>` : ""}
+      <p class="vazio">Nenhum anúncio encontrado.</p>
+    `;
     return;
   }
 
-  itensContainer.innerHTML = itensFiltrados
-    .map((item) => {
-      const classeBadge = item.tipo === "Perdido" ? "perdido" : "encontrado";
+  itensContainer.innerHTML = `
+    ${aviso ? `<p class="vazio">${aviso}</p>` : ""}
+    ${itensFiltrados
+      .map((item) => {
+        const classeBadge = item.tipo === "Perdido" ? "perdido" : "encontrado";
 
-      return `
-        <div class="item-card">
-          ${item.foto_url ? `<img src="${item.foto_url}" alt="Foto do item" class="item-img">` : ""}
+        return `
+          <div class="item-card">
+            ${item.foto_url ? `<img src="${item.foto_url}" alt="Foto do item" class="item-img">` : ""}
 
-          <div class="item-topo">
-            <span class="badge ${classeBadge}">${item.tipo}</span>
-            <small>${formatarData(item.data_ocorrido)}</small>
+            <div class="item-topo">
+              <span class="badge ${classeBadge}">${item.tipo}</span>
+              <small>${formatarData(item.data_ocorrido)}</small>
+            </div>
+
+            <h4>${item.titulo}</h4>
+            <p><strong>Categoria:</strong> ${item.categoria}</p>
+            <p><strong>Bairro:</strong> ${item.bairro}</p>
+            <p><strong>Cidade:</strong> ${item.cidade}</p>
+            <p><strong>Descrição:</strong> ${item.descricao}</p>
+            <p><strong>Contato:</strong> ${item.contato}</p>
+
+            <a
+              class="btn btn-whatsapp"
+              target="_blank"
+              href="https://wa.me/55${item.contato}?text=${encodeURIComponent(
+                `Olá! Vi seu anúncio no Achados RG sobre: ${item.titulo}. Acho que pode ser meu.`
+              )}"
+            >
+              Falar no WhatsApp
+            </a>
+
+            <button class="btn btn-secundario" onclick="removerItem('${item.id}')">
+              Remover
+            </button>
           </div>
-
-          <h4>${item.titulo}</h4>
-          <p><strong>Categoria:</strong> ${item.categoria}</p>
-          <p><strong>Bairro:</strong> ${item.bairro}</p>
-          <p><strong>Cidade:</strong> ${item.cidade}</p>
-          <p><strong>Descrição:</strong> ${item.descricao}</p>
-          <p><strong>Contato:</strong> ${item.contato}</p>
-
-          <a
-            class="btn btn-whatsapp"
-            target="_blank"
-            href="https://wa.me/55${item.contato}?text=${encodeURIComponent(
-              `Olá! Vi seu anúncio no Achados RG sobre: ${item.titulo}. Acho que pode ser meu.`
-            )}"
-          >
-            Falar no WhatsApp
-          </a>
-
-          <button class="btn btn-secundario" onclick="removerItem('${item.id}')">
-            Remover
-          </button>
-        </div>
-      `;
-    })
-    .join("");
+        `;
+      })
+      .join("")}
+  `;
 }
 
 async function carregarItens() {
-  const { data, error } = await supabaseClient
-    .from("anuncios")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const { data, error } = await supabaseClient
+      .from("anuncios")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+    itens = data || [];
+    salvarCacheAnuncios(itens);
+    renderizarItens();
+  } catch (error) {
     console.error("Erro ao carregar anúncios:", error);
-    itensContainer.innerHTML = `<p class="vazio">Erro ao carregar anúncios.</p>`;
-    return;
-  }
 
-  itens = data || [];
-  renderizarItens();
+    const cache = lerCacheAnuncios();
+
+    if (cache.length > 0) {
+      itens = cache;
+      renderizarItens("Mostrando anúncios em cache por instabilidade no sistema.");
+    } else {
+      itensContainer.innerHTML = `<p class="vazio">Erro ao carregar anúncios.</p>`;
+    }
+  }
 }
 
 async function uploadImagem(arquivo) {
@@ -137,30 +175,33 @@ async function removerItem(id) {
 
   if (!item) return;
 
-  const { error } = await supabaseClient
-    .from("anuncios")
-    .delete()
-    .eq("id", id);
+  try {
+    const { error } = await supabaseClient
+      .from("anuncios")
+      .delete()
+      .eq("id", id);
 
-  if (error) {
-    alert("Erro ao remover anúncio.");
-    console.error(error);
-    return;
-  }
-
-  if (item.foto_url) {
-    try {
-      const url = new URL(item.foto_url);
-      const partes = url.pathname.split("/object/public/itens/");
-      if (partes[1]) {
-        await supabaseClient.storage.from("itens").remove([partes[1]]);
-      }
-    } catch (e) {
-      console.warn("Não foi possível remover a imagem do storage.", e);
+    if (error) {
+      throw error;
     }
-  }
 
-  await carregarItens();
+    if (item.foto_url) {
+      try {
+        const url = new URL(item.foto_url);
+        const partes = url.pathname.split("/object/public/itens/");
+        if (partes[1]) {
+          await supabaseClient.storage.from("itens").remove([partes[1]]);
+        }
+      } catch (e) {
+        console.warn("Não foi possível remover a imagem do storage.", e);
+      }
+    }
+
+    await carregarItens();
+  } catch (error) {
+    alert("Erro ao remover anúncio. O sistema pode estar instável.");
+    console.error(error);
+  }
 }
 
 async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
@@ -177,17 +218,21 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
     foto_url: fotoUrl,
   };
 
-  const { error } = await supabaseClient.from("anuncios").insert([novoItem]);
+  try {
+    const { error } = await supabaseClient.from("anuncios").insert([novoItem]);
 
-  if (error) {
-    alert("Erro ao cadastrar anúncio.");
-    console.error(error);
-    return;
+    if (error) {
+      throw error;
+    }
+
+    form.reset();
+    alert("Anúncio cadastrado com sucesso.");
+    await carregarItens();
+  } catch (error) {
+    console.error("Erro ao cadastrar anúncio:", error);
+    salvarRascunho(novoItem);
+    alert("O sistema está instável. Seu anúncio foi salvo localmente como rascunho.");
   }
-
-  form.reset();
-  alert("Anúncio cadastrado com sucesso.");
-  await carregarItens();
 }
 
 form.addEventListener("submit", async (e) => {
@@ -215,13 +260,28 @@ form.addEventListener("submit", async (e) => {
 
     await salvarNovoItem(fotoUrl, telefoneLimpo);
   } catch (error) {
-    alert("Erro ao enviar imagem.");
-    console.error(error);
+    console.error("Erro ao enviar imagem:", error);
+
+    const novoItemSemUpload = {
+      tipo: document.getElementById("tipo").value,
+      categoria: document.getElementById("categoria").value,
+      titulo: document.getElementById("titulo").value,
+      bairro: document.getElementById("bairro").value,
+      cidade: "Rio Grande",
+      estado: "RS",
+      data_ocorrido: document.getElementById("data").value,
+      contato: telefoneLimpo,
+      descricao: document.getElementById("descricao").value,
+      foto_url: "",
+    };
+
+    salvarRascunho(novoItemSemUpload);
+    alert("Erro ao enviar imagem. O anúncio foi salvo localmente sem foto como rascunho.");
   }
 });
 
-filtroTipo.addEventListener("change", renderizarItens);
-filtroCategoria.addEventListener("change", renderizarItens);
-buscaTexto.addEventListener("input", renderizarItens);
+filtroTipo.addEventListener("change", () => renderizarItens());
+filtroCategoria.addEventListener("change", () => renderizarItens());
+buscaTexto.addEventListener("input", () => renderizarItens());
 
 carregarItens();
