@@ -179,13 +179,9 @@ async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
             return;
           }
 
-          const extensaoOriginal = file.name.includes(".")
-            ? file.name.substring(file.name.lastIndexOf("."))
-            : ".jpg";
-
           const arquivoComprimido = new File(
             [blob],
-            `comprimida_${Date.now()}${extensaoOriginal}`,
+            `comprimida_${Date.now()}.jpg`,
             {
               type: "image/jpeg",
               lastModified: Date.now(),
@@ -202,6 +198,37 @@ async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
     img.onerror = () => reject(new Error("Arquivo de imagem inválido."));
     reader.readAsDataURL(file);
   });
+}
+
+async function converterHeicParaJpeg(file) {
+  const tiposHeic = ["image/heic", "image/heif"];
+  const nomeMinusculo = file.name.toLowerCase();
+
+  const ehHeic =
+    tiposHeic.includes(file.type) ||
+    nomeMinusculo.endsWith(".heic") ||
+    nomeMinusculo.endsWith(".heif");
+
+  if (!ehHeic) {
+    return file;
+  }
+
+  const blobConvertido = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.8,
+  });
+
+  const blobFinal = Array.isArray(blobConvertido) ? blobConvertido[0] : blobConvertido;
+
+  return new File(
+    [blobFinal],
+    file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+    {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    }
+  );
 }
 
 async function uploadImagem(arquivo) {
@@ -310,13 +337,15 @@ form.addEventListener("submit", async (e) => {
     let fotoUrl = "";
     let arquivoProcessado = arquivo;
 
-    if (arquivo) {
-      if (arquivo.size > 2000000) {
-        arquivoProcessado = await comprimirImagem(arquivo);
+    if (arquivoProcessado) {
+      arquivoProcessado = await converterHeicParaJpeg(arquivoProcessado);
+
+      if (arquivoProcessado.size > 2000000) {
+        arquivoProcessado = await comprimirImagem(arquivoProcessado);
       }
 
       if (arquivoProcessado.size > 2000000) {
-        alert("A imagem continua muito grande mesmo após compressão. Tente outra foto.");
+        alert("A imagem continua muito grande mesmo após conversão/compressão. Tente outra foto.");
         return;
       }
 
