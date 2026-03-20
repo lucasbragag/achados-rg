@@ -144,6 +144,66 @@ async function carregarItens() {
   }
 }
 
+async function comprimirImagem(file, maxWidth = 1200, qualidade = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const img = new Image();
+
+    reader.onload = (evento) => {
+      img.src = evento.target.result;
+    };
+
+    reader.onerror = () => reject(new Error("Erro ao ler a imagem."));
+
+    img.onload = () => {
+      let largura = img.width;
+      let altura = img.height;
+
+      if (largura > maxWidth) {
+        const proporcao = maxWidth / largura;
+        largura = maxWidth;
+        altura = Math.round(altura * proporcao);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = largura;
+      canvas.height = altura;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, largura, altura);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Não foi possível comprimir a imagem."));
+            return;
+          }
+
+          const extensaoOriginal = file.name.includes(".")
+            ? file.name.substring(file.name.lastIndexOf("."))
+            : ".jpg";
+
+          const arquivoComprimido = new File(
+            [blob],
+            `comprimida_${Date.now()}${extensaoOriginal}`,
+            {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            }
+          );
+
+          resolve(arquivoComprimido);
+        },
+        "image/jpeg",
+        qualidade
+      );
+    };
+
+    img.onerror = () => reject(new Error("Arquivo de imagem inválido."));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadImagem(arquivo) {
   if (!arquivo) return null;
 
@@ -246,16 +306,21 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  if (arquivo && arquivo.size > 2000000) {
-    alert("A imagem deve ter no máximo 2MB.");
-    return;
-  }
-
   try {
     let fotoUrl = "";
+    let arquivoProcessado = arquivo;
 
     if (arquivo) {
-      fotoUrl = await uploadImagem(arquivo);
+      if (arquivo.size > 2000000) {
+        arquivoProcessado = await comprimirImagem(arquivo);
+      }
+
+      if (arquivoProcessado.size > 2000000) {
+        alert("A imagem continua muito grande mesmo após compressão. Tente outra foto.");
+        return;
+      }
+
+      fotoUrl = await uploadImagem(arquivoProcessado);
     }
 
     await salvarNovoItem(fotoUrl, telefoneLimpo);
