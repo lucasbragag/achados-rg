@@ -68,7 +68,7 @@ function renderizarItens(aviso = "") {
   const itensFiltrados = aplicarFiltros(itens);
 
   if (tituloAnuncios) {
-    tituloAnuncios.textContent = `Anúncios (${itensFiltrados.length} de ${itens.length})`;
+    tituloAnuncios.textContent = `Anúncios (${itensFiltrados.length}`;
   }
 
   if (itensFiltrados.length === 0) {
