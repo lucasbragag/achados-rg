@@ -12,6 +12,7 @@ const buscaTexto = document.getElementById("buscaTexto");
 const fotoInput = document.getElementById("foto");
 
 let itens = [];
+let enviandoFormulario = false
 
 const CACHE_KEY = "achadosRG_cacheAnuncios";
 const RASCUNHOS_KEY = "achadosRG_rascunhosPendentes";
