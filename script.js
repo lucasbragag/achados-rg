@@ -5,6 +5,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 const form = document.getElementById("itemForm");
 const itensContainer = document.getElementById("itensContainer");
+const tituloAnuncios = document.getElementById("tituloAnuncios");
 const filtroTipo = document.getElementById("filtroTipo");
 const filtroCategoria = document.getElementById("filtroCategoria");
 const buscaTexto = document.getElementById("buscaTexto");
@@ -65,6 +66,10 @@ function aplicarFiltros(lista) {
 
 function renderizarItens(aviso = "") {
   const itensFiltrados = aplicarFiltros(itens);
+
+  if (tituloAnuncios) {
+    tituloAnuncios.textContent = `Anúncios (${itensFiltrados.length} de ${itens.length})`;
+  }
 
   if (itensFiltrados.length === 0) {
     itensContainer.innerHTML = `
