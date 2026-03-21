@@ -330,11 +330,24 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  if (enviandoFormulario) return;
+
+  enviandoFormulario = true;
+
+  const botaoSubmit = form.querySelector('button[type="submit"]');
+  const textoOriginal = botaoSubmit.textContent;
+
+  botaoSubmit.disabled = true;
+  botaoSubmit.textContent = "Publicando...";
+
   const telefoneLimpo = document.getElementById("contato").value.replace(/\D/g, "");
   const arquivo = fotoInput.files[0];
 
   if (!telefoneLimpo) {
     alert("Informe um telefone para contato.");
+    botaoSubmit.disabled = false;
+    botaoSubmit.textContent = textoOriginal;
+    enviandoFormulario = false;
     return;
   }
 
@@ -350,7 +363,7 @@ form.addEventListener("submit", async (e) => {
       }
 
       if (arquivoProcessado.size > 2000000) {
-        alert("A imagem continua muito grande mesmo após conversão/compressão. Tente outra foto.");
+        alert("A imagem continua muito grande mesmo após conversão/compressão.");
         return;
       }
 
@@ -375,7 +388,11 @@ form.addEventListener("submit", async (e) => {
     };
 
     salvarRascunho(novoItemSemUpload);
-    alert("Erro ao enviar imagem. O anúncio foi salvo localmente sem foto como rascunho.");
+    alert("Erro ao enviar imagem. Salvo como rascunho.");
+  } finally {
+    botaoSubmit.disabled = false;
+    botaoSubmit.textContent = textoOriginal;
+    enviandoFormulario = false;
   }
 });
 

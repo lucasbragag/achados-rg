@@ -218,6 +218,11 @@ textarea {
   padding: 8px 0;
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .grid,
   .lista-itens {
