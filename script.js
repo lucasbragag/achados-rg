@@ -124,9 +124,12 @@ function renderizarItens(aviso = "") {
 
 async function carregarItens() {
   try {
+    const agora = new Date().toISOString();
+
     const { data, error } = await supabaseClient
       .from("anuncios")
       .select("*")
+      .gt("expires_at", agora)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -298,6 +301,9 @@ async function removerItem(id) {
 }
 
 async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
+  const dataExpiracao = new Date();
+  dataExpiracao.setDate(dataExpiracao.getDate() + 2);
+
   const novoItem = {
     tipo: document.getElementById("tipo").value,
     categoria: document.getElementById("categoria").value,
@@ -309,6 +315,7 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
     contato: telefoneLimpo,
     descricao: document.getElementById("descricao").value,
     foto_url: fotoUrl,
+    expires_at: dataExpiracao.toISOString(),
   };
 
   try {
