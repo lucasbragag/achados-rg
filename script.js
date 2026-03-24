@@ -101,6 +101,7 @@ function renderizarItens(aviso = "") {
             <p><strong>Cidade:</strong> ${item.cidade}</p>
             <p><strong>Descrição:</strong> ${item.descricao}</p>
             <p><strong>Contato:</strong> ${item.contato}</p>
+            <p><strong>Expira em:</strong> ${formatarData(item.expires_at?.split("T")[0])}</p>
 
             <a
               class="btn btn-whatsapp"
