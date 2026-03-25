@@ -23,6 +23,12 @@ function formatarData(data) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// 🔐 FUNÇÃO DE USUÁRIO
+async function getUser() {
+  const { data } = await supabaseClient.auth.getUser();
+  return data.user;
+}
+
 function salvarCacheAnuncios(lista) {
   localStorage.setItem(CACHE_KEY, JSON.stringify(lista));
 }
@@ -302,6 +308,7 @@ async function removerItem(id) {
 }
 
 async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
+  const user = await getUser();
   const dataExpiracao = new Date();
   dataExpiracao.setDate(dataExpiracao.getDate() + 2);
 
@@ -317,6 +324,7 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
     descricao: document.getElementById("descricao").value,
     foto_url: fotoUrl,
     expires_at: dataExpiracao.toISOString(),
+    user_id: user.id,
   };
 
   try {
@@ -338,6 +346,14 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+
+  // 🔐 AQUI LOGIN
+  const user = await getUser();
+
+  if (!user) {
+    alert("Você precisa entrar com email para publicar.");
+    return;
+  }
 
   if (enviandoFormulario) return;
 
@@ -404,6 +420,32 @@ form.addEventListener("submit", async (e) => {
     enviandoFormulario = false;
   }
 });
+
+  // 🔐 LOGIN
+const btnLogin = document.getElementById("btnLogin");
+
+if (btnLogin) {
+  btnLogin.addEventListener("click", async () => {
+    const email = document.getElementById("emailLogin").value;
+
+    if (!email) {
+      alert("Informe um email.");
+      return;
+    }
+
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email: email,
+    });
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao enviar email.");
+      return;
+    }
+
+    alert("Verifique seu email para acessar.");
+  });
+}
 
 filtroTipo.addEventListener("change", () => renderizarItens());
 filtroCategoria.addEventListener("change", () => renderizarItens());
