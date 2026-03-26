@@ -13,6 +13,14 @@ const fotoInput = document.getElementById("foto");
 
 let itens = [];
 let enviandoFormulario = false
+let currentUser = null;
+
+const ADMIN_EMAILS = ["lucasbragag@yahoo.com"];
+
+function isAdmin(user) {
+  if (!user?.email) return false;
+  return ADMIN_EMAILS.includes(user.email);
+}
 
 const CACHE_KEY = "achadosRG_cacheAnuncios";
 const RASCUNHOS_KEY = "achadosRG_rascunhosPendentes";
@@ -30,16 +38,16 @@ async function getUser() {
 }
 
 async function atualizarUIUsuario() {
-  const user = await getUser();
+  currentUser = await getUser();
   const loginBox = document.querySelector(".login-box");
   const form = document.getElementById("itemForm");
 
   if (!loginBox || !form) return;
 
-  if (user) {
+  if (currentUser) {
     loginBox.innerHTML = `
       <p class="login-titulo">Você está logado</p>
-      <p class="login-sub">${user.email}</p>
+      <p class="login-sub">${currentUser.email}</p>
       <button id="btnLogout" class="btn btn-secundario">Sair</button>
     `;
 
@@ -117,6 +125,16 @@ function renderizarItens(aviso = "") {
       .map((item) => {
         const classeBadge = item.tipo === "Perdido" ? "perdido" : "encontrado";
 
+        const podeRemover =
+          currentUser &&
+          (item.user_id === currentUser.id || isAdmin(currentUser));
+
+        const podeResolver =
+          currentUser &&
+          (item.user_id === currentUser.id || isAdmin(currentUser));
+
+        const resolvido = item.status === "resolvido";
+
         return `
           <div class="item-card">
             ${item.foto_url ? `<img src="${item.foto_url}" alt="Foto do item" class="item-img">` : ""}
@@ -125,6 +143,8 @@ function renderizarItens(aviso = "") {
               <span class="badge ${classeBadge}">${item.tipo}</span>
               <small>${formatarData(item.data_ocorrido)}</small>
             </div>
+
+            ${resolvido ? `<p class="badge resolvido">✔ Resolvido</p>` : ""}
 
             <h4>${item.titulo}</h4>
             <p><strong>Categoria:</strong> ${item.categoria}</p>
@@ -144,9 +164,14 @@ function renderizarItens(aviso = "") {
               Falar no WhatsApp
             </a>
 
-            <button class="btn btn-secundario" onclick="removerItem('${item.id}')">
-              Remover
-            </button>
+            ${podeResolver && !resolvido
+              ? `<button class="btn btn-primario" onclick="marcarResolvido('${item.id}')">Marcar como resolvido</button>`
+              : ""}
+
+            ${podeRemover
+              ? `<button class="btn btn-secundario" onclick="removerItem('${item.id}')">Remover</button>`
+              : ""}
+
           </div>
         `;
       })
@@ -332,6 +357,27 @@ async function removerItem(id) {
   }
 }
 
+async function marcarResolvido(id) {
+  const confirmou = confirm("Marcar este anúncio como resolvido?");
+  if (!confirmou) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("anuncios")
+      .update({ status: "resolvido" })
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    await carregarItens();
+  } catch (error) {
+    alert("Erro ao marcar anúncio como resolvido.");
+    console.error(error);
+  }
+}
+
 async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
   const user = await getUser();
   const dataExpiracao = new Date();
@@ -350,6 +396,7 @@ async function salvarNovoItem(fotoUrl = "", telefoneLimpo = "") {
     foto_url: fotoUrl,
     expires_at: dataExpiracao.toISOString(),
     user_id: user.id,
+    status: "ativo"
   };
 
   try {

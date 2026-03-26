@@ -265,6 +265,12 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.badge.resolvido {
+  background: #16a34a;
+  color: white;
+  margin-bottom: 10px;
+}
+
 @media (max-width: 768px) {
   .grid,
   .lista-itens {
