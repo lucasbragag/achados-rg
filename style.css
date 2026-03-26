@@ -223,6 +223,43 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.login-box {
+  background: #f8f9fb;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--borda);
+}
+
+.login-titulo {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  font-size: 0.95rem;
+  color: var(--texto-suave);
+  margin-bottom: 12px;
+}
+
+.login-linha {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.login-linha input {
+  flex: 1;
+  min-width: 240px;
+}
+
+.login-hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .grid,
   .lista-itens {
@@ -231,5 +268,9 @@ button:disabled {
 
   .hero h2 {
     font-size: 1.5rem;
+  }
+
+  .login-linha {
+    flex-direction: column;
   }
 }

@@ -33,14 +33,23 @@
     <section id="formulario" class="card">
       <h3>Publicar anúncio</h3>
 
-      <p class="vazio">Digite seu email. Você receberá um link para acessar.</p>
-
       <!-- LOGIN -->
       <div class="login-box">
-        <input type="email" id="emailLogin" placeholder="Digite seu email para publicar" />
-        <button type="button" id="btnLogin" class="btn btn-secundario">
-          Receber link
-        </button>
+        <p class="login-titulo">Entrar para publicar</p>
+        <p class="login-sub">Digite seu email. Você receberá um link para acessar.</p>
+
+        <div class="login-linha">
+          <input
+            type="email"
+            id="emailLogin"
+            placeholder="seuemail@email.com"
+          />
+          <button type="button" id="btnLogin" class="btn btn-primario">
+            Entrar
+          </button>
+        </div>
+
+        <small class="login-hint">Não precisa senha. Acesso rápido e seguro.</small>
       </div>
 
       <form id="itemForm">
