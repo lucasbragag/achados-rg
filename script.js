@@ -29,6 +29,20 @@ async function getUser() {
   return data.user;
 }
 
+async function atualizarUIUsuario() {
+  const user = await getUser();
+  const loginBox = document.querySelector(".login-box");
+
+  if (!loginBox) return;
+
+  if (user) {
+    loginBox.innerHTML = `
+      <p class="login-titulo">Você está logado</p>
+      <p class="login-sub">${user.email}</p>
+    `;
+  }
+}
+
 function salvarCacheAnuncios(lista) {
   localStorage.setItem(CACHE_KEY, JSON.stringify(lista));
 }
@@ -443,7 +457,8 @@ if (btnLogin) {
       return;
     }
 
-    alert("Verifique seu email para acessar.");
+    alert("Enviamos um link para seu email. Abra para entrar.");
+    atualizarUIUsuario();
   });
 }
 
@@ -452,3 +467,4 @@ filtroCategoria.addEventListener("change", () => renderizarItens());
 buscaTexto.addEventListener("input", () => renderizarItens());
 
 carregarItens();
+atualizarUIUsuario();
