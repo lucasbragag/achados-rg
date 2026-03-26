@@ -39,7 +39,13 @@ async function atualizarUIUsuario() {
     loginBox.innerHTML = `
       <p class="login-titulo">Você está logado</p>
       <p class="login-sub">${user.email}</p>
+      <button id="btnLogout" class="btn btn-secundario">Sair</button>
     `;
+
+    document.getElementById("btnLogout").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      location.reload(); // recarrega já deslogado
+    });
   }
 }
 
