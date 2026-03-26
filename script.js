@@ -32,8 +32,9 @@ async function getUser() {
 async function atualizarUIUsuario() {
   const user = await getUser();
   const loginBox = document.querySelector(".login-box");
+  const form = document.getElementById("itemForm");
 
-  if (!loginBox) return;
+  if (!loginBox || !form) return;
 
   if (user) {
     loginBox.innerHTML = `
@@ -42,10 +43,14 @@ async function atualizarUIUsuario() {
       <button id="btnLogout" class="btn btn-secundario">Sair</button>
     `;
 
+    form.style.display = "block";
+
     document.getElementById("btnLogout").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
-      location.reload(); // recarrega já deslogado
+      location.reload();
     });
+  } else {
+    form.style.display = "none";
   }
 }
 
@@ -446,26 +451,37 @@ const btnLogin = document.getElementById("btnLogin");
 
 if (btnLogin) {
   btnLogin.addEventListener("click", async () => {
-    const email = document.getElementById("emailLogin").value;
+  const email = document.getElementById("emailLogin").value;
 
-    if (!email) {
-      alert("Informe um email.");
-      return;
-    }
+  if (!email) {
+    alert("Informe um email.");
+    return;
+  }
 
-    const { error } = await supabaseClient.auth.signInWithOtp({
-      email: email,
-    });
+  btnLogin.disabled = true;
+  const textoOriginal = btnLogin.textContent;
+  btnLogin.textContent = "Enviando...";
 
-    if (error) {
-      console.error(error);
-      alert("Erro ao enviar email.");
-      return;
-    }
-
-    alert("Enviamos um link para seu email. Abra para entrar.");
-    atualizarUIUsuario();
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email: email,
   });
+
+  if (error) {
+    console.error(error);
+    alert("Erro ao enviar email.");
+
+    btnLogin.disabled = false;
+    btnLogin.textContent = textoOriginal;
+    return;
+  }
+
+  alert("Enviamos um link para seu email. Abra para entrar.");
+
+  btnLogin.disabled = false;
+  btnLogin.textContent = textoOriginal;
+
+  atualizarUIUsuario();
+});
 }
 
 filtroTipo.addEventListener("change", () => renderizarItens());
